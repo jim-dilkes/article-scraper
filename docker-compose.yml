@@ -1,0 +1,76 @@
+version: '3'
+
+services:
+#  db:
+#    image: postgres
+#    ports:
+#      - "5432:5432"
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+  django:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./vol:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+  celery:
+    build: .
+    command: python manage.py celeryd -l info -B --settings=article_insight_generator.settings #python manage.py celery -A article_insight_generator worker -l info
+    volumes:
+      - ./vol:/app
+    ports:
+      - "6800:6800"
+    depends_on:
+      - django
+      - redis
+  celery-flower:
+    build: .
+    command: flower -A article_insight_generator --port=5555
+    volumes:
+      - ./vol:/app
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery
+  # flower:  
+  #   image: mher/flower
+  #   command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]  
+  #   ports:  
+  #    - 8888:8888  
+
+  # scrapyd:
+  #   build: .
+  #   command: scrapyd
+  #   volumes:
+  #     - ./vol:/app
+  #   #ports:
+  #   #  - "6800:6800"
+  #   depends_on:
+  #     - redis
+  #   #  - celery
+
+  # celeryd:
+  #   build: .
+  #   command: 
+  #   volumes:
+  #     - ./vol:/app
+  #   ports:
+  #     - 
+  #   depends_on:
+  #     - redis
+  #     - celery
+
+# #   celery-beat:
+# #     build: .
+# #     command: celery -A article_insight_generator beat -l info
+# #     volumes:
+# #       - ./vol:/app
+# #     depends_on:
+# #  #     - db
+# #       - redis
